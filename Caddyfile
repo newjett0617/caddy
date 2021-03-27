@@ -1,0 +1,35 @@
+{
+    http_port 80
+    https_port 443
+
+    email {$EMAIL}
+    #acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+(removeServerHeader) {
+    header / {
+        -Server
+    }
+}
+
+(gzip) {
+    encode gzip
+}
+
+{$DOMAIN} {
+    import removeServerHeader
+    import gzip
+    respond "{$DOMAIN}" 200
+}
+
+health.{$DOMAIN} {
+    import removeServerHeader
+    import gzip
+    respond "healthy" 200
+}
+
+whoami.{$DOMAIN} {
+    import removeServerHeader
+    import gzip
+    reverse_proxy whoami:80
+}

@@ -1,30 +1,56 @@
 version: "3"
 
 volumes:
-  my-volume:
-    name: my-volume
+  caddy-config:
+    name: caddy-config
+    driver: local
+  caddy-data:
+    name: caddy-data
     driver: local
 
 networks:
-  my-network:
-    name: my-network
+  reverse-proxy:
+    name: reverse-proxy
     driver: bridge
-    internal: true
+    external: true
 
 services:
-  my-app:
-    image: docker.io/library/nginx:alpine
+  whoami:
+    image: docker.io/traefik/whoami:latest
     init: true
-    container_name: my-app
+    container_name: whoami
     restart: unless-stopped
     networks:
-      - my-network
+      - reverse-proxy
     expose:
       - 80
+    logging:
+      driver: json-file
+      options:
+        max-size: "200k"
+        max-file: "10"
+        compress: "true"
+  caddy:
+    image: docker.io/library/caddy:2.3.0-alpine
+    init: true
+    container_name: caddy
+    restart: unless-stopped
+    networks:
+      - reverse-proxy
+    expose:
+      - ${ENV_HTTP_PORT}
+      - ${ENV_HTTPS_PORT}
     ports:
-      - 80:80
+      - ${ENV_HTTP_PORT}:${ENV_HTTP_PORT}
+      - ${ENV_HTTPS_PORT}:${ENV_HTTPS_PORT}
     environment:
-      - foo=bar
+      - DOMAIN=${ENV_DOMAIN}
+      - EMAIL=${ENV_EMAIL}
+    volumes:
+      - caddy-config:/config:rw
+      - caddy-data:/data:rw
+      - ./Caddyfile:/etc/caddy/Caddyfile:rw
+    command: [ "/usr/bin/caddy", "run", "--adapter", "caddyfile", "--config", "/etc/caddy/Caddyfile", "--watch" ]
     logging:
       driver: json-file
       options:
@@ -32,7 +58,7 @@ services:
         max-file: "10"
         compress: "true"
     healthcheck:
-      test: [ "CMD-SHELL", "curl --fail http://localhost" ]
+      test: [ "CMD-SHELL", "wget --no-verbose --spider --tries=1 https://health.${ENV_DOMAIN}/ || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
