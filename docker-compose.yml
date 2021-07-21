@@ -9,36 +9,52 @@ x-basic-setting: &basic-setting
       max-size: "2G"
       max-file: "2"
       compress: "true"
-  healthcheck:
-    test: [ "CMD-SHELL", "curl --fail http://localhost" ]
-    interval: 30s
-    timeout: 30s
-    start_period: 10s
-    retries: 3
 
 volumes:
-  my-volume:
-    name: my-volume
+  caddy_data:
+    external: true
+  caddy_config:
+    name: caddy_config
     driver: local
 
 networks:
-  my-network:
-    name: my-network
+  reverse_proxy:
+    name: reverse_proxy
     driver: bridge
-    internal: true
+    external: true
 
 services:
-  my-app:
+  caddy:
     <<: *basic-setting
-    image: docker.io/library/nginx:alpine
-    container_name: my-app
+    image: docker.io/library/caddy:2-alpine
+    container_name: caddy
     networks:
-      - my-network
+      - reverse_proxy
     expose:
       - 80
+      - 443
     ports:
       - 80:80
+      - 443:443
     environment:
-      - foo=bar
+      - DOMAIN=${ENV_DOMAIN}
+      - EMAIL=${ENV_EMAIL}
     volumes:
-      - my-volume:/etc/nginx:rw
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./conf.d:/etc/caddy/conf.d:ro
+      - caddy_data:/data:rw
+      - caddy_config:/config:rw
+    healthcheck:
+      test: [ "CMD-SHELL", "wget --no-verbose --spider --tries=1 https://health.${ENV_DOMAIN}/ || exit 1" ]
+      interval: 30s
+      timeout: 30s
+      start_period: 10s
+      retries: 3
+  whoami:
+    <<: *basic-setting
+    image: docker.io/traefik/whoami:latest
+    container_name: whoami
+    networks:
+      - reverse_proxy
+    expose:
+      - 80

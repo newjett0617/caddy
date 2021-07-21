@@ -1,0 +1,21 @@
+{
+	# General Options
+	#debug
+	http_port 80
+	https_port 443
+
+	# TLS Options
+	#auto_https off
+	email {$EMAIL:user@example.com}
+	#acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+}
+
+(compress) {
+	encode gzip zstd
+}
+
+(removeHeader_server) {
+	header -Server
+}
+
+import conf.d/*.conf
