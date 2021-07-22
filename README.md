@@ -7,8 +7,8 @@ cp .env.example .env
 edit .env
 
 ```
-docker network create reverse_proxy
-docker volume create --name=caddy_data
+docker network create --driver=bridge reverse_proxy
+docker volume create --driver=local caddy_data
 ```
 
 ```
