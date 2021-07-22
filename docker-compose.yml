@@ -26,7 +26,7 @@ networks:
 services:
   caddy:
     <<: *basic-setting
-    image: docker.io/library/caddy:2-alpine
+    image: docker.io/library/caddy:2.4.3-alpine
     container_name: caddy
     networks:
       - reverse_proxy
