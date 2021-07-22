@@ -19,8 +19,6 @@ volumes:
 
 networks:
   reverse_proxy:
-    name: reverse_proxy
-    driver: bridge
     external: true
 
 services:
